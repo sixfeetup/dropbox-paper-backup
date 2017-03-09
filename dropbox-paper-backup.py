@@ -4,13 +4,14 @@
 """ Dropbox Backup
 
 Usage:
-  {cmd} [--token=<string>] [--logfile=<path>] [--verbose] <target>  
+  {cmd} [--token=TOKEN] [--logfile=PATH] [--verbose] [markdown|html] <target>  
 
 Options:
-  -t --token=<string>   The access token for the dropbox account. Omit to get a new token.
-  -l --logfile=<path>   Log to the specified file. 
-  -v --verbose          Be more verbose.
-  <target>              The path to store the backup in.
+  -t --token=TOKEN    The access token for the dropbox account. Omit to get a new token.
+  -l --logfile=PATH   Log to the specified file. 
+  -v --verbose        Be more verbose.
+  markdown|html       Export either as "html" or as "markdown". So both if omitted.
+  <target>            The path to store the backup in.
   
 """
 
@@ -26,6 +27,7 @@ import webbrowser
 import urllib.parse
 import traceback
 import unicodedata
+import requests.packages.urllib3
 from contextlib import contextmanager
 
 # API-Description: https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-list
@@ -109,7 +111,7 @@ def paper_documents(dbx: dropbox.Dropbox, page_size=1000):
 
 
 def download_resource_file(url: str, fd: io.TextIOWrapper):
-    response = requests.get(url, stream=True)
+    response = requests.get(url, stream=True, verify=False)
     for chunk in response.iter_content(chunk_size=2 ** 10):
         fd.write(chunk)
 
@@ -140,26 +142,36 @@ def replace_images(tracker: Tracker, folders: list, document_reference: str, bod
     return body
 
 
-def store_document(tracker: Tracker, dbx: dropbox.Dropbox, document_id: str):
+def store_document(export_format: str, tracker: Tracker, dbx: dropbox.Dropbox, document_id: str):
 
     folders = [folder.name for folder in dbx.paper_docs_get_folder_info(document_id).folders or []]
-    document_meta, document_body = dbx.paper_docs_download(document_id, dropbox.paper.ExportFormat('html'))
-    document_reference = "%s-%s" % (document_id, document_meta.revision)
-    file_name = "%s [%s].html" % (document_meta.title, document_reference)
 
-    with tracker.file_handler(folders, file_name) as fd:
+    if export_format == 'html' or export_format=='all':
+        document_meta, document_body = dbx.paper_docs_download(document_id, dropbox.paper.ExportFormat('html'))
+        document_reference = "%s-%s" % (document_id, document_meta.revision)
         content = replace_images(tracker, folders, document_reference, document_body.content)
-        if fd:
-            fd.write(content)
+        file_name = "%s [%s].html" % (document_meta.title, document_reference)
+        with tracker.file_handler(folders, file_name) as fd:
+            if fd:
+                fd.write(content)
+
+    if export_format == 'markdown' or export_format=='all':
+        document_meta, document_body = dbx.paper_docs_download(document_id, dropbox.paper.ExportFormat('markdown'))
+        document_reference = "%s-%s" % (document_id, document_meta.revision)
+        content = document_body.content
+        file_name = "%s [%s].md" % (document_meta.title, document_reference)
+        with tracker.file_handler(folders, file_name) as fd:
+            if fd:
+                fd.write(content)
 
 
-def backup(token, target):
+def backup(token, target, export_format='all'):
 
     dbx = dropbox.Dropbox(token)
     tracker = Tracker(os.path.abspath(target))
 
     for index, document_id in enumerate(paper_documents(dbx)):
-        store_document(tracker, dbx, document_id)
+        store_document(export_format, tracker, dbx, document_id)
 
     tracker.cleanup()
 
@@ -189,6 +201,7 @@ if __name__ == '__main__':
 
     sys.excepthook = lambda c, e, t: logging.critical('%s: %s\n%s', c, e, ''.join(traceback.format_tb(t)))
     arguments = docopt.docopt(__doc__.format(cmd=__file__))
+    requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
     logging.getLogger("requests").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("dropbox").setLevel(logging.WARNING)
@@ -199,6 +212,11 @@ if __name__ == '__main__':
         level=logging.DEBUG if arguments['--verbose'] else logging.INFO)
 
     if arguments['--token']:
-        backup(token=arguments['--token'], target=arguments['<target>'])
+        if arguments['markdown']:
+            backup(token=arguments['--token'], target=arguments['<target>'], export_format='html')
+        elif arguments['html']:
+            backup(token=arguments['--token'], target=arguments['<target>'], export_format='markdown')
+        else:
+            backup(token=arguments['--token'], target=arguments['<target>'])
     else:
         get_token()
