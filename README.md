@@ -7,7 +7,7 @@ While its very easy to download and maintain a complete copy of your complete Dr
 For this reason i wrote this little script to run periodically on my NAS.
 
 
-# Usage:
+# Usage
 
     ./dropbox-paper-backup.py [--token=TOKEN] [--logfile=PATH] [--verbose] [markdown|html] <target>
 
