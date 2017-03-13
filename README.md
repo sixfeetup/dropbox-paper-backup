@@ -23,20 +23,20 @@ For this reason i wrote this little script to run periodically on my NAS.
 
 1. Get the script and setup permissions:
 
-    git clone https://github.com/efenka/dropbox-paper-backup.git
-    cd dropbox-paper-backup
-    chmod u+x dropbox-paper-backup.py
+    `git clone https://github.com/efenka/dropbox-paper-backup.git`    
+    `cd dropbox-paper-backup`    
+    `chmod u+x dropbox-paper-backup.py`
 
 2. Install dependencies:
 
-    pip3 install -r requirements.txt
+    `pip3 install -r requirements.txt`
 
 3. Create a backup destination and request a authorisation token:
 
-    ./dropbox-paper-backup.py ./archive
+    `./dropbox-paper-backup.py ./archive`
 
 4. Run the script again, giving the token returned by the previous step.
 
-    ./dropbox-paper-backup.py --token=TOKEN ./archive
+    `./dropbox-paper-backup.py --token=TOKEN ./archive`
 
 Depended on how many files you have, it may take a while.
