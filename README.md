@@ -31,7 +31,7 @@ For this reason i wrote this little script to run periodically on my NAS.
 
   `pip3 install -r requirements.txt`
 
-3. Create a backup destination and request a authorisation token:
+3. Create a backup destination and request an authorisation token:
 
   `./dropbox-paper-backup.py ./archive`
 
