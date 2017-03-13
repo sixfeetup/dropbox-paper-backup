@@ -10,7 +10,7 @@ Options:
   -t --token=TOKEN    The access token for the dropbox account. Omit to get a new token.
   -l --logfile=PATH   Log to the specified file. 
   -v --verbose        Be more verbose.
-  markdown|html       Export either as "html" or as "markdown". So both if omitted.
+  markdown|html       Export either as "html" or as "markdown". Do both if omitted.
   <target>            The path to store the backup in.
   
 """
