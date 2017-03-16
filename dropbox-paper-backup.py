@@ -225,7 +225,10 @@ def backup(token: str, target: str, export_format='all'):
     tracker = Tracker(os.path.abspath(target))
 
     for index, document_id in enumerate(paper_documents(dbx)):
-        store_document(export_format, tracker, dbx, document_id)
+        try:
+            store_document(export_format, tracker, dbx, document_id)
+        except dropbox.exceptions.ApiError as e:
+            logging.exception('dropbox api error for document %s: %s', document_id, e)
 
     tracker.cleanup()
 
