@@ -192,7 +192,10 @@ def store_document(export_format: str, tracker: Tracker, dbx: dropbox.Dropbox, d
     :param document_id: The document id if the paper document to download.    
     """
 
-    folders = [folder.name for folder in dbx.paper_docs_get_folder_info(document_id).folders or []]
+    try:
+        folders = [folder.name for folder in dbx.paper_docs_get_folder_info(document_id).folders or []]
+    except dropbox.exceptions.ApiError:
+        folders = []
 
     if export_format == 'html' or export_format == 'all':
         document_meta, document_body = dbx.paper_docs_download(document_id, dropbox.paper.ExportFormat('html'))
