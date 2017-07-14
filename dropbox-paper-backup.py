@@ -193,7 +193,7 @@ def store_document(export_format: str, tracker: Tracker, dbx: dropbox.Dropbox, d
     """
 
     try:
-        folders = [folder.name.replace('/', ' ')
+        folders = [folder.name.replace('/', '+')
                    for folder
                    in dbx.paper_docs_get_folder_info(document_id).folders or []]
     except dropbox.exceptions.ApiError:
@@ -203,7 +203,7 @@ def store_document(export_format: str, tracker: Tracker, dbx: dropbox.Dropbox, d
         document_meta, document_body = dbx.paper_docs_download(document_id, dropbox.paper.ExportFormat('html'))
         document_reference = "%s-%s" % (document_id, document_meta.revision)
         content = replace_images(tracker, folders, document_reference, document_body.content)
-        file_name = "%s [%s].html" % (document_meta.title.replace('/', ' '), document_reference)
+        file_name = "%s [%s].html" % (document_meta.title.replace('/', '+'), document_reference)
         with tracker.file_handler(folders, file_name) as fd:
             if fd:
                 fd.write(content)
@@ -212,7 +212,7 @@ def store_document(export_format: str, tracker: Tracker, dbx: dropbox.Dropbox, d
         document_meta, document_body = dbx.paper_docs_download(document_id, dropbox.paper.ExportFormat('markdown'))
         document_reference = "%s-%s" % (document_id, document_meta.revision)
         content = document_body.content
-        file_name = "%s [%s].md" % (document_meta.title.replace('/', ' '), document_reference)
+        file_name = "%s [%s].md" % (document_meta.title.replace('/', '+'), document_reference)
         with tracker.file_handler(folders, file_name) as fd:
             if fd:
                 fd.write(content)
