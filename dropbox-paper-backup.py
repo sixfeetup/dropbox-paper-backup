@@ -255,9 +255,12 @@ def get_token():
         oauth_result = auth_flow.finish(auth_code)
     except Exception:
         logging.exception("Receiving token failed.")
+        sys.exit(1)
     else:
         print("Token received. From now on please start this script with:")
         print("  --token=%s" % oauth_result.access_token)
+
+        return oauth_result.access_token
 
 
 if __name__ == '__main__':
@@ -274,12 +277,12 @@ if __name__ == '__main__':
         datefmt="%Y-%m-%dT%H:%M:%S%z",
         level=logging.DEBUG if arguments['--verbose'] else logging.INFO)
 
-    if arguments['--token']:
-        if arguments['markdown']:
-            backup(token=arguments['--token'], target=arguments['<target>'], export_format='html')
-        elif arguments['html']:
-            backup(token=arguments['--token'], target=arguments['<target>'], export_format='markdown')
-        else:
-            backup(token=arguments['--token'], target=arguments['<target>'])
+    if not arguments['--token']:
+        arguments['--token'] = get_token()
+
+    if arguments['markdown']:
+        backup(token=arguments['--token'], target=arguments['<target>'], export_format='html')
+    elif arguments['html']:
+        backup(token=arguments['--token'], target=arguments['<target>'], export_format='markdown')
     else:
-        get_token()
+        backup(token=arguments['--token'], target=arguments['<target>'])
