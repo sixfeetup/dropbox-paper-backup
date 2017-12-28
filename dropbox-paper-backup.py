@@ -233,7 +233,8 @@ def backup(token: str, target: str, export_format='all', max_workers=5):
     :param export_format: he format to store the document in.
     """
 
-    dbx = dropbox.Dropbox(token)
+    dbx_session = dropbox.dropbox.create_session(max_connections=max_workers * 2)
+    dbx = dropbox.Dropbox(token, session=dbx_session)
     tracker = Tracker(os.path.abspath(target))
     pool = Pool(max_workers=max_workers)
 
