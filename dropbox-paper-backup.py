@@ -4,12 +4,13 @@
 """ Dropbox Backup
 
 Usage:
-  {cmd} [--token=TOKEN] [--logfile=PATH] [--verbose] [markdown|html] <target>  
+  {cmd} [--token=TOKEN] [--logfile=PATH] [--workers=NUM] [--verbose] [markdown|html] <target>
 
 Options:
   -t --token=TOKEN    The access token for the dropbox account. Omit to get a new token.
   -l --logfile=PATH   Log to the specified file. 
   -v --verbose        Be more verbose.
+  -w --workers=NUM    Number of parallel workers [default: 5]
   markdown|html       Export either as "html" or as "markdown". Do both if omitted.
   <target>            The path to store the backup in.
   
@@ -25,6 +26,7 @@ import unicodedata
 import urllib.parse
 import webbrowser
 from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor as Pool
 
 import docopt
 import dropbox
@@ -199,26 +201,31 @@ def store_document(export_format: str, tracker: Tracker, dbx: dropbox.Dropbox, d
     except dropbox.exceptions.ApiError:
         folders = []
 
-    if export_format == 'html' or export_format == 'all':
-        document_meta, document_body = dbx.paper_docs_download(document_id, dropbox.paper.ExportFormat('html'))
-        document_reference = "%s-%s" % (document_id, document_meta.revision)
-        content = replace_images(tracker, folders, document_reference, document_body.content)
-        file_name = "%s [%s].html" % (document_meta.title.replace('/', '+'), document_reference)
-        with tracker.file_handler(folders, file_name) as fd:
-            if fd:
-                fd.write(content)
+    try:
 
-    if export_format == 'markdown' or export_format == 'all':
-        document_meta, document_body = dbx.paper_docs_download(document_id, dropbox.paper.ExportFormat('markdown'))
-        document_reference = "%s-%s" % (document_id, document_meta.revision)
-        content = document_body.content
-        file_name = "%s [%s].md" % (document_meta.title.replace('/', '+'), document_reference)
-        with tracker.file_handler(folders, file_name) as fd:
-            if fd:
-                fd.write(content)
+        if export_format == 'html' or export_format == 'all':
+            document_meta, document_body = dbx.paper_docs_download(document_id, dropbox.paper.ExportFormat('html'))
+            document_reference = "%s-%s" % (document_id, document_meta.revision)
+            content = replace_images(tracker, folders, document_reference, document_body.content)
+            file_name = "%s [%s].html" % (document_meta.title.replace('/', '+'), document_reference)
+            with tracker.file_handler(folders, file_name) as fd:
+                if fd:
+                    fd.write(content)
+
+        if export_format == 'markdown' or export_format == 'all':
+            document_meta, document_body = dbx.paper_docs_download(document_id, dropbox.paper.ExportFormat('markdown'))
+            document_reference = "%s-%s" % (document_id, document_meta.revision)
+            content = document_body.content
+            file_name = "%s [%s].md" % (document_meta.title.replace('/', '+'), document_reference)
+            with tracker.file_handler(folders, file_name) as fd:
+                if fd:
+                    fd.write(content)
+
+    except dropbox.exceptions.ApiError as e:
+        logging.exception('dropbox api error for document %s: %s', document_id, e)
 
 
-def backup(token: str, target: str, export_format='all'):
+def backup(token: str, target: str, export_format='all', max_workers=5):
     """ Download all accessed documents in the dropbox account. 
     
     :param token: Token to login to the dropbox account.
@@ -228,13 +235,12 @@ def backup(token: str, target: str, export_format='all'):
 
     dbx = dropbox.Dropbox(token)
     tracker = Tracker(os.path.abspath(target))
+    pool = Pool(max_workers=max_workers)
 
     for index, document_id in enumerate(paper_documents(dbx)):
-        try:
-            store_document(export_format, tracker, dbx, document_id)
-        except dropbox.exceptions.ApiError as e:
-            logging.exception('dropbox api error for document %s: %s', document_id, e)
+        pool.submit(store_document, export_format, tracker, dbx, document_id)
 
+    pool.shutdown()
     tracker.cleanup()
 
 
@@ -281,8 +287,16 @@ if __name__ == '__main__':
         arguments['--token'] = get_token()
 
     if arguments['markdown']:
-        backup(token=arguments['--token'], target=arguments['<target>'], export_format='html')
+        backup(token=arguments['--token'],
+               target=arguments['<target>'],
+               export_format='markdown',
+               max_workers=int(arguments['--workers']))
     elif arguments['html']:
-        backup(token=arguments['--token'], target=arguments['<target>'], export_format='markdown')
+        backup(token=arguments['--token'],
+               target=arguments['<target>'],
+               export_format='html',
+               max_workers=int(arguments['--workers']))
     else:
-        backup(token=arguments['--token'], target=arguments['<target>'])
+        backup(token=arguments['--token'],
+               target=arguments['<target>'],
+               max_workers=int(arguments['--workers']))
