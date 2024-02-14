@@ -222,7 +222,7 @@ def store_document(export_format: str, tracker: Tracker, dbx: dropbox.Dropbox, d
                     fd.write(content)
 
     except dropbox.exceptions.ApiError as e:
-        logging.exception('dropbox api error for document %s: %s', document_id, e)
+        logging.warning('dropbox api error for document %s: %s', document_id, e)
 
 
 def backup(token: str, target: str, export_format='all', max_workers=5):
