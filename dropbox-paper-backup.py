@@ -34,9 +34,10 @@ import requests
 import requests.packages.urllib3
 
 # API-Description: https://www.dropbox.com/developers/documentation/http/documentation#paper-docs-list
-APP_KEY = "yb0prv4vj0ckhdt"
-APP_SECRET = b'J,/ |+N5-Y\x12:-1\r'
-
+#APP_KEY = "yb0prv4vj0ckhdt"
+#APP_SECRET = b'J,/ |+N5-Y\x12:-1\r'
+APP_KEY = os.getenv("DROPBOX_APP_KEY")
+APP_SECRET = os.getenv("DROPBOX_APP_SECRET")
 
 def obf(s: bytes):
     m = b'9NKLJCxPZikUXXgbTOVU'

@@ -9,6 +9,8 @@ For this reason i wrote this little script to run periodically on my NAS.
 
 # Usage
 
+Note: `DROPBOX_APP_KEY` and `DROPBOX_APP_SECRET` must be set in your environment.
+
     ./dropbox-paper-backup.py [--token=TOKEN] [--logfile=PATH] [--verbose] [markdown|html] <target>
 
     Options:
